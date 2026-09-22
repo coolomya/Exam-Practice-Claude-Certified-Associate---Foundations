@@ -1,5 +1,3 @@
-Absolutely. Based on the **Claude CCAO-F practice exam simulator** project we've been working on, here's a GitHub-ready `README.md`:
-
 # Claude Certified Associate – Foundations Practice Exam
 
 A lightweight, browser-based practice exam simulator inspired by the **Claude Certified Associate – Foundations (CCAO-F)** certification exam.
@@ -382,5 +380,3 @@ No backend or database is required.
 ## 📜 License
 
 This project is intended for personal educational and practice use.
-
-If you add an explicit open-source license to the repository, update this section accordingly.
