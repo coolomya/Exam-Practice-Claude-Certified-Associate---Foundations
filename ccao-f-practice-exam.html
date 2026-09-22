@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCAO-F Practice Exam Simulator</title>
+<style>
+:root{
+  --blue:#2563eb;--blue-dark:#1d4ed8;--blue-soft:#eff6ff;
+  --green:#15803d;--green-soft:#f0fdf4;
+  --red:#b91c1c;--red-soft:#fef2f2;
+  --amber:#b45309;--amber-soft:#fffbeb;
+  --text:#172033;--muted:#64748b;--border:#dbe2ea;
+  --bg:#f5f7fa;--white:#fff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text);background:var(--bg)}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{height:100vh;display:flex;flex-direction:column}
+header{height:68px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0}
+.brand{font-weight:700;font-size:17px}.brand span{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;background:#f8fafc;border:1px solid var(--border);padding:10px 16px;border-radius:8px;min-width:130px;text-align:center}
+.timer.warning{color:var(--amber);background:var(--amber-soft);border-color:#fcd34d}
+.timer.danger{color:var(--red);background:var(--red-soft);border-color:#fca5a5}
+
+.start-screen{width:min(760px,calc(100% - 32px));margin:auto;background:var(--white);border:1px solid var(--border);border-radius:14px;padding:42px;box-shadow:0 8px 30px rgba(15,23,42,.06)}
+.start-screen h1{margin:0 0 10px;font-size:28px}.start-screen p{color:var(--muted);line-height:1.6}
+.exam-info{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:28px 0}
+.info{border:1px solid var(--border);border-radius:9px;padding:14px}.info strong{display:block;font-size:20px}.info small{color:var(--muted)}
+.start-actions{display:flex;gap:12px;flex-wrap:wrap}
+.file-input{display:none}
+
+.exam{display:none;flex:1;min-height:0}
+.sidebar{width:285px;background:var(--white);border-right:1px solid var(--border);padding:20px;display:flex;flex-direction:column;overflow:auto}
+.side-title{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:12px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin:14px 0 18px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;border:1px solid var(--border);vertical-align:-1px}
+.dot.answered{background:#bfdbfe;border-color:#93c5fd}.dot.flagged{background:#fbbf24;border-color:#f59e0b}.dot.current{background:var(--blue);border-color:var(--blue)}
+.palette{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.pal{height:38px;border:1px solid var(--border);background:white;border-radius:6px;font-weight:600;color:#475569}
+.pal:hover{border-color:#93c5fd}.pal.current{background:var(--blue);color:white;border-color:var(--blue)}
+.pal.answered:not(.current){background:var(--blue-soft);border-color:#93c5fd;color:var(--blue-dark)}
+.pal.flagged{box-shadow:inset 0 -3px 0 #f59e0b}
+.side-stats{margin-top:22px;border-top:1px solid var(--border);padding-top:18px;color:var(--muted);font-size:13px;line-height:1.8}
+.side-bottom{margin-top:auto;padding-top:20px}
+.content{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.content-scroll{flex:1;overflow:auto;padding:34px 42px}
+.question-wrap{max-width:900px;margin:0 auto}
+.question-top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:18px}
+.domain{font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--blue)}
+.q-number{font-size:13px;color:var(--muted)}
+.question{font-size:22px;line-height:1.48;font-weight:600;margin:0 0 25px}
+.instruction{display:inline-block;background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--muted);font-size:12px;margin-bottom:14px}
+.options{display:flex;flex-direction:column;gap:10px}
+.option{display:flex;align-items:flex-start;gap:13px;border:1px solid var(--border);background:white;border-radius:9px;padding:16px;transition:.15s}
+.option:hover{border-color:#93c5fd;background:#fafcff}
+.option.selected{border-color:var(--blue);background:var(--blue-soft)}
+.option input{margin-top:3px;width:18px;height:18px;accent-color:var(--blue);flex-shrink:0}
+.option label{line-height:1.45;cursor:pointer;flex:1}
+.actions{background:var(--white);border-top:1px solid var(--border);padding:14px 42px;display:flex;justify-content:space-between;gap:10px;flex-shrink:0}
+.actions-right{display:flex;gap:10px}
+.btn{border:1px solid var(--border);background:white;color:#334155;padding:10px 17px;border-radius:7px;font-weight:600}
+.btn:hover{background:#f8fafc}.btn.primary{background:var(--blue);border-color:var(--blue);color:white}.btn.primary:hover{background:var(--blue-dark)}
+.btn.danger{background:var(--red);border-color:var(--red);color:white}
+.btn.ghost{background:transparent}.btn:disabled{opacity:.45;cursor:not-allowed}
+.flag-btn.active{color:#92400e;background:var(--amber-soft);border-color:#fbbf24}
+
+#results{display:none;flex:1;overflow:auto;padding:40px}
+.results-inner{max-width:950px;margin:auto}
+.result-card{background:white;border:1px solid var(--border);border-radius:14px;padding:30px}
+.score{font-size:54px;font-weight:800;color:var(--blue);margin:8px 0}
+.result-muted{color:var(--muted)}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}
+.result-stat{border:1px solid var(--border);border-radius:9px;padding:15px}.result-stat strong{font-size:20px;display:block}.result-stat span{color:var(--muted);font-size:12px}
+.review{margin-top:24px}
+.review-item{background:white;border:1px solid var(--border);border-left:5px solid var(--border);border-radius:8px;padding:18px;margin:10px 0}
+.review-item.correct{border-left-color:var(--green)}.review-item.incorrect{border-left-color:var(--red)}
+.review-q{font-weight:650;line-height:1.45}.review-a{font-size:14px;margin-top:9px}.review-a strong{display:inline-block;min-width:110px}
+.notice{background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:12px 14px;color:var(--muted);font-size:13px;line-height:1.5}
+
+@media(max-width:800px){
+ header{padding:0 14px}.brand{font-size:14px}.timer{min-width:auto;padding:8px 10px}
+ .exam{flex-direction:column}.sidebar{width:100%;height:auto;border-right:0;border-bottom:1px solid var(--border);padding:12px}.sidebar .side-title,.legend,.side-stats,.side-bottom{display:none}.palette{grid-template-columns:repeat(10,1fr)}
+ .content-scroll{padding:22px 16px}.actions{padding:12px 16px}.question{font-size:19px}
+ .result-grid,.exam-info{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){.palette{grid-template-columns:repeat(6,1fr)}.result-grid,.exam-info{grid-template-columns:1fr}.start-screen{padding:25px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">Claude Certified Associate — Foundations<span>CCAO-F Practice Exam Simulator</span></div>
+  <div class="timer" id="timer" style="display:none">02:00:00</div>
+</header>
+
+<section class="start-screen" id="startScreen">
+  <h1>Practice Exam</h1>
+  <p>This simulator uses the questions in <strong>quiz_data.json</strong>. The interface supports single-answer and multiple-response questions, question navigation, review flags, a countdown timer, and a final answer review.</p>
+  <div class="exam-info">
+    <div class="info"><strong id="questionCount">—</strong><small>Questions loaded</small></div>
+    <div class="info"><strong>120 min</strong><small>Practice timer</small></div>
+    <div class="info"><strong>Review</strong><small>After submission</small></div>
+  </div>
+  <div class="notice">For a practice simulator, the result is shown as a raw percentage. It does not attempt to convert a practice score into Anthropic's official scaled score.</div>
+  <div class="start-actions" style="margin-top:22px">
+    <button class="btn primary" id="startBtn" disabled>Start practice exam</button>
+    <label class="btn" for="fileUpload">Load / replace quiz JSON</label>
+    <input class="file-input" type="file" id="fileUpload" accept=".json,application/json">
+  </div>
+  <p id="loadStatus" style="font-size:13px;margin-top:14px">Loading quiz_data.json…</p>
+</section>
+
+<section class="exam" id="exam">
+  <aside class="sidebar">
+    <div class="side-title">Questions</div>
+    <div class="palette" id="palette"></div>
+    <div class="legend">
+      <span><i class="dot current"></i>Current</span>
+      <span><i class="dot answered"></i>Answered</span>
+      <span><i class="dot flagged"></i>Review</span>
+    </div>
+    <div class="side-stats" id="sideStats"></div>
+    <div class="side-bottom"><button class="btn danger" style="width:100%" id="submitBtn">Submit exam</button></div>
+  </aside>
+
+  <main class="content">
+    <div class="content-scroll">
+      <div class="question-wrap" id="questionContainer"></div>
+    </div>
+    <div class="actions">
+      <button class="btn flag-btn" id="flagBtn">⚑ Mark for review</button>
+      <div class="actions-right">
+        <button class="btn" id="prevBtn">Previous</button>
+        <button class="btn primary" id="nextBtn">Next</button>
+      </div>
+    </div>
+  </main>
+</section>
+
+<section id="results">
+  <div class="results-inner" id="resultsContainer"></div>
+</section>
+</div>
+
+<script>
+"use strict";
+
+const EXAM_MINUTES = 120;
+
+let quizData = [];
+let currentIndex = 0;
+let answers = {};
+let flagged = new Set();
+let secondsRemaining = EXAM_MINUTES * 60;
+let timerHandle = null;
+let submitted = false;
+
+const $ = id => document.getElementById(id);
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function normalizeQuiz(data) {
+  if (!Array.isArray(data)) throw new Error("quiz_data.json must contain a JSON array.");
+  return data.map((q, i) => {
+    if (!q || !Array.isArray(q.options) || !q.question) {
+      throw new Error("Question " + (i + 1) + " is missing question/options data.");
+    }
+    return {
+      id: q.id ?? i + 1,
+      domain: q.domain ?? "General",
+      question: q.question,
+      options: q.options,
+      answer: q.answer
+    };
+  });
+}
+
+function isMultiple(q) {
+  return Array.isArray(q.answer);
+}
+
+function getSelected(q) {
+  const value = answers[q.id];
+  if (isMultiple(q)) return Array.isArray(value) ? value : [];
+  return value ?? null;
+}
+
+function isAnswered(q) {
+  const selected = getSelected(q);
+  return Array.isArray(selected) ? selected.length > 0 : selected !== null;
+}
+
+function sameAnswer(q, selected, correct) {
+  if (Array.isArray(correct)) {
+    const a = Array.isArray(selected) ? [...selected].sort() : [];
+    const b = [...correct].sort();
+    return a.length === b.length && a.every((v,i) => v === b[i]);
+  }
+  return selected === correct;
+}
+
+function loadData(data, sourceLabel) {
+  quizData = normalizeQuiz(data);
+  answers = {};
+  flagged = new Set();
+  currentIndex = 0;
+  submitted = false;
+  $("questionCount").textContent = quizData.length;
+  $("startBtn").disabled = quizData.length === 0;
+  $("loadStatus").textContent = sourceLabel + " loaded successfully.";
+}
+
+async function tryAutoLoad() {
+  try {
+    const response = await fetch("quiz_data.json", {cache:"no-store"});
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    loadData(await response.json(), "quiz_data.json");
+  } catch {
+    $("loadStatus").textContent =
+      "Open this HTML through a local web server for automatic loading, or use “Load / replace quiz JSON”.";
+  }
+}
+
+$("fileUpload").addEventListener("change", e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      loadData(JSON.parse(reader.result), file.name);
+    } catch (err) {
+      $("loadStatus").textContent = "Could not load JSON: " + err.message;
+    }
+  };
+  reader.readAsText(file);
+});
+
+function renderPalette() {
+  const palette = $("palette");
+  palette.innerHTML = "";
+  quizData.forEach((q, i) => {
+    const b = document.createElement("button");
+    b.className = "pal" +
+      (i === currentIndex ? " current" : "") +
+      (isAnswered(q) ? " answered" : "") +
+      (flagged.has(q.id) ? " flagged" : "");
+    b.textContent = i + 1;
+    b.title = "Question " + (i + 1);
+    b.addEventListener("click", () => showQuestion(i));
+    palette.appendChild(b);
+  });
+  const answered = quizData.filter(isAnswered).length;
+  const review = quizData.filter(q => flagged.has(q.id)).length;
+  $("sideStats").innerHTML =
+    "<strong>" + answered + "/" + quizData.length + "</strong> answered<br>" +
+    "<strong>" + review + "</strong> marked for review";
+}
+
+function showQuestion(index) {
+  if (!quizData.length) return;
+  currentIndex = Math.max(0, Math.min(index, quizData.length - 1));
+  const q = quizData[currentIndex];
+  const selected = getSelected(q);
+
+  $("questionContainer").innerHTML = `
+    <div class="question-top">
+      <div>
+        <div class="domain">${escapeHtml(q.domain)}</div>
+        <div class="q-number">Question ${currentIndex + 1} of ${quizData.length}</div>
+      </div>
+    </div>
+    ${isMultiple(q) ? '<div class="instruction">Select all answers that apply.</div>' : '<div class="instruction">Select one answer.</div>'}
+    <h1 class="question">${escapeHtml(q.question)}</h1>
+    <div class="options" id="options"></div>
+  `;
+
+  const options = $("options");
+  q.options.forEach((option, optionIndex) => {
+    const selectedNow = Array.isArray(selected) ? selected.includes(option) : selected === option;
+    const wrapper = document.createElement("div");
+    wrapper.className = "option" + (selectedNow ? " selected" : "");
+
+    const input = document.createElement("input");
+    input.type = isMultiple(q) ? "checkbox" : "radio";
+    input.name = "question-" + q.id;
+    input.checked = selectedNow;
+    input.id = "option-" + optionIndex;
+
+    const label = document.createElement("label");
+    label.htmlFor = input.id;
+    label.innerHTML = escapeHtml(option);
+
+    input.addEventListener("change", () => {
+      if (isMultiple(q)) {
+        let values = Array.isArray(answers[q.id]) ? [...answers[q.id]] : [];
+        if (input.checked) {
+          if (!values.includes(option)) values.push(option);
+        } else {
+          values = values.filter(v => v !== option);
+        }
+        answers[q.id] = values;
+      } else {
+        answers[q.id] = option;
+      }
+      renderPalette();
+      showQuestion(currentIndex);
+    });
+
+    wrapper.addEventListener("click", e => {
+      if (e.target !== input && e.target !== label) input.click();
+    });
+
+    wrapper.append(input, label);
+    options.appendChild(wrapper);
+  });
+
+  $("flagBtn").classList.toggle("active", flagged.has(q.id));
+  $("flagBtn").textContent = flagged.has(q.id) ? "⚑ Remove review mark" : "⚑ Mark for review";
+  $("prevBtn").disabled = currentIndex === 0;
+  $("nextBtn").textContent = currentIndex === quizData.length - 1 ? "Review answers" : "Next";
+  renderPalette();
+}
+
+function goNext() {
+  if (currentIndex < quizData.length - 1) showQuestion(currentIndex + 1);
+  else showQuestion(currentIndex);
+}
+
+function goPrev() {
+  if (currentIndex > 0) showQuestion(currentIndex - 1);
+}
+
+$("prevBtn").addEventListener("click", goPrev);
+$("nextBtn").addEventListener("click", goNext);
+
+$("flagBtn").addEventListener("click", () => {
+  const id = quizData[currentIndex].id;
+  flagged.has(id) ? flagged.delete(id) : flagged.add(id);
+  showQuestion(currentIndex);
+});
+
+$("startBtn").addEventListener("click", () => {
+  if (!quizData.length) return;
+  $("startScreen").style.display = "none";
+  $("exam").style.display = "flex";
+  $("timer").style.display = "block";
+  secondsRemaining = EXAM_MINUTES * 60;
+  startTimer();
+  showQuestion(0);
+});
+
+function updateTimer() {
+  const h = Math.floor(secondsRemaining / 3600);
+  const m = Math.floor((secondsRemaining % 3600) / 60);
+  const s = secondsRemaining % 60;
+  $("timer").textContent =
+    String(h).padStart(2,"0") + ":" +
+    String(m).padStart(2,"0") + ":" +
+    String(s).padStart(2,"0");
+
+  $("timer").classList.toggle("warning", secondsRemaining <= 15 * 60 && secondsRemaining > 5 * 60);
+  $("timer").classList.toggle("danger", secondsRemaining <= 5 * 60);
+}
+
+function startTimer() {
+  clearInterval(timerHandle);
+  updateTimer();
+  timerHandle = setInterval(() => {
+    secondsRemaining--;
+    updateTimer();
+    if (secondsRemaining <= 0) {
+      clearInterval(timerHandle);
+      finishExam(true);
+    }
+  }, 1000);
+}
+
+$("submitBtn").addEventListener("click", () => {
+  const unanswered = quizData.filter(q => !isAnswered(q)).length;
+  const message = unanswered
+    ? "You still have " + unanswered + " unanswered question(s). Submit anyway?"
+    : "Submit the practice exam?";
+  if (confirm(message)) finishExam(false);
+});
+
+function finishExam(autoSubmitted) {
+  if (submitted) return;
+  submitted = true;
+  clearInterval(timerHandle);
+
+  let correct = 0;
+  let answered = 0;
+
+  quizData.forEach(q => {
+    if (isAnswered(q)) answered++;
+    if (sameAnswer(q, getSelected(q), q.answer)) correct++;
+  });
+
+  const percentage = quizData.length ? Math.round(correct / quizData.length * 100) : 0;
+  const unanswered = quizData.length - answered;
+
+  let review = "";
+  quizData.forEach((q, i) => {
+    const selected = getSelected(q);
+    const selectedText = Array.isArray(selected)
+      ? (selected.length ? selected.join("<br>") : "No answer provided")
+      : (selected ?? "No answer provided");
+    const correctText = Array.isArray(q.answer) ? q.answer.join("<br>") : q.answer;
+    const ok = sameAnswer(q, selected, q.answer);
+
+    review += `
+      <div class="review-item ${ok ? "correct" : "incorrect"}">
+        <div class="review-q">Question ${i + 1}. ${escapeHtml(q.question)}</div>
+        <div class="review-a"><strong>Your answer:</strong> ${escapeHtml(selectedText)}</div>
+        <div class="review-a"><strong>Correct answer:</strong> ${escapeHtml(correctText)}</div>
+      </div>`;
+  });
+
+  $("exam").style.display = "none";
+  $("timer").style.display = "none";
+  $("results").style.display = "block";
+  $("resultsContainer").innerHTML = `
+    <div class="result-card">
+      <h1>Practice Exam Results</h1>
+      <div class="score">${percentage}%</div>
+      <p class="result-muted">${correct} of ${quizData.length} questions correct${autoSubmitted ? " · Time expired" : ""}</p>
+      <div class="result-grid">
+        <div class="result-stat"><strong>${correct}</strong><span>Correct</span></div>
+        <div class="result-stat"><strong>${answered}</strong><span>Answered</span></div>
+        <div class="result-stat"><strong>${unanswered}</strong><span>Unanswered</span></div>
+      </div>
+      <div class="notice">
+        This is a practice percentage only. CCAO-F uses a scaled scoring system; this simulator does not claim that a raw percentage is equivalent to the official certification passing score.
+      </div>
+      <div class="review">
+        <h2>Answer review</h2>
+        ${review}
+      </div>
+      <div style="margin-top:24px">
+        <button class="btn primary" id="restartBtn">Start another attempt</button>
+      </div>
+    </div>`;
+  $("restartBtn").addEventListener("click", () => location.reload());
+}
+
+tryAutoLoad();
+</script>
+</body>
+</html>
